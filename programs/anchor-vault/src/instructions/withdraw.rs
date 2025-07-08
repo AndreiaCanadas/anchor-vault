@@ -22,13 +22,25 @@ pub struct Withdraw<'info> {
 
 impl<'info> Withdraw<'info> {
     pub fn withdraw(&mut self, amount: u64) -> Result<()> {
+
+        // TODO: Check if the user has enough funds in the vault
+        // TODO: Check if the value to withdraw keeps the vault rent exempt
+
+
         let cpi_program = self.system_program.to_account_info();
         let cpi_accounts = Transfer {
             from: self.vault.to_account_info(),
             to: self.user.to_account_info(),
 
         };
-        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        let vault_state_key = self.vault_state.key();
+        let seeds = &[
+            b"vault", 
+            vault_state_key.as_ref(), 
+            &[self.vault_state.vault_bump]
+        ];
+        let signer_seeds = &[&seeds[..]];
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
         transfer(cpi_ctx, amount)
     }
 }
