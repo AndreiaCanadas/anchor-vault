@@ -4,6 +4,7 @@
 use anchor_lang::prelude::*;
 mod instructions;
 mod state;
+mod errors;
 use instructions::*;
 
 declare_id!("3utcHFtdCbauU9igcHDtES2dEZ2Tdn57mbU7j166KhDY");

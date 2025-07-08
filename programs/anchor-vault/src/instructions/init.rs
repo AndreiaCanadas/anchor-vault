@@ -1,4 +1,4 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, system_program::{transfer, Transfer}};
 
 use crate::state::VaultState;
 
@@ -9,7 +9,7 @@ pub struct Init<'info> {
     #[account(
         init, 
         payer = user, 
-        space = 8 + VaultState::INIT_SPACE, 
+        space = VaultState::INIT_SPACE, 
         seeds = [b"state", user.key().as_ref()],
         bump
     )]
@@ -24,8 +24,21 @@ pub struct Init<'info> {
 }
 impl<'info> Init<'info> {
     pub fn init(&mut self, bumps: &InitBumps) -> Result<()> {
+
+        // get rent exempt lamports needed to initialize vault
+        let rent_exempt_lamports = Rent::get()?.minimum_balance(self.vault.data_len());
+
+        let cpi_program = self.system_program.to_account_info();
+        let cpi_accounts = Transfer {
+            from: self.user.to_account_info(),
+            to: self.vault.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        transfer(cpi_ctx, rent_exempt_lamports)?;
+
         self.vault_state.vault_bump = bumps.vault;
         self.vault_state.state_bump = bumps.vault_state;
+
         Ok(())
     }
 }
