@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use crate::state::VaultState;
+use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
@@ -23,9 +24,10 @@ pub struct Withdraw<'info> {
 impl<'info> Withdraw<'info> {
     pub fn withdraw(&mut self, amount: u64) -> Result<()> {
 
-        // TODO: Check if the user has enough funds in the vault
-        // TODO: Check if the value to withdraw keeps the vault rent exempt
-
+        // Check if the user has enough funds in the vault to withdraw and to vault be left with rent exempt
+        let rent_exempt_lamports = Rent::get()?.minimum_balance(self.vault.data_len());
+        let amount_remaining:i64 = self.vault.lamports() as i64 - amount as i64;
+        require!(amount_remaining >= rent_exempt_lamports as i64, ErrorCode::InsufficientFunds);
 
         let cpi_program = self.system_program.to_account_info();
         let cpi_accounts = Transfer {
